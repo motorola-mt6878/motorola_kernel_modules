@@ -270,7 +270,7 @@ static struct reg_default sgm41606s_reg_init_val[] = {
 	{BQ25980_TSBUS_FLT,	0x15},
 	{BQ25980_TSBAT_FLG,	0x15},
 	{BQ25980_VAC_CONTROL,	0x6c},//0xb4:14v*2 for vacovp
-	{BQ25980_CHRGR_CTRL_2,	0x00},
+	//{BQ25980_CHRGR_CTRL_2,	0x00},
 	{BQ25980_CHRGR_CTRL_3,	0x94},//0x94:watchdog disable 5s,500kHz
 	{BQ25980_CHRGR_CTRL_4,	0xf1},//5m oum battery sense resister & ss_timeout is 10s
 	{BQ25980_CHRGR_CTRL_5,	0x60},
@@ -1504,12 +1504,18 @@ static int bq25980_power_supply_init(struct bq25980_device *bq,
 static int bq25980_reg_init(struct bq25980_device *bq)
 {
 	int i, ret;
+	unsigned int num_size = 0;
 
 	/*reg reset*/
 	ret = regmap_update_bits(bq->regmap, BQ25980_CHRGR_CTRL_2,
 		BQ25980_REG_RESET, BQ25980_REG_RESET);
 
-	for (i = 0; i < ARRAY_SIZE(bq25980_reg_init_val); i++) {
+	if(bq->part_no == SGM41606S_PART_NO)
+		num_size = ARRAY_SIZE(sgm41606s_reg_init_val);
+	else
+		num_size = ARRAY_SIZE(bq25980_reg_init_val);
+
+	for (i = 0; i < num_size; i++) {
 		ret = regmap_update_bits(bq->regmap, bq->chip_info->reg_init_values[i].reg,
 			0xFF, bq->chip_info->reg_init_values[i].def);
 		dev_notice(bq->dev, "init Reg[%02X] = 0x%02X\n",
@@ -1521,6 +1527,11 @@ static int bq25980_reg_init(struct bq25980_device *bq)
 			return ret;
 		}
 	}
+
+	if (bq->part_no == SGM41606S_PART_NO) {
+		regmap_update_bits(bq->regmap, BQ25980_CHRGR_CTRL_2, BQ25980_DIS_MOS_BOTH, 0);
+	}
+
 	return 0;
 }
 
@@ -2616,7 +2627,12 @@ static void bq25980_charger_shutdown(struct i2c_client *client)
 		BQ25980_REG_RESET, BQ25980_REG_RESET);
 	bq25980_set_adc_enable(bq, false);
 
-	regmap_write(bq->regmap, BQ25980_CHRGR_CTRL_2, 0);
+
+	if (bq->part_no == SGM41606S_PART_NO) {
+		regmap_update_bits(bq->regmap, BQ25980_CHRGR_CTRL_2, BQ25980_DIS_MOS_BOTH, 0);
+	} else {
+		regmap_write(bq->regmap, BQ25980_CHRGR_CTRL_2, 0);
+	}
 
 	dev_err(bq->dev,"Shutdown Successfully\n");
 }
