@@ -1290,6 +1290,7 @@ int mmi_start_detection(struct adapter_device *dev)
 	{
 		qc3p_z350_init_ok = false;
 		wt6670f_do_reset();
+		msleep(3000);
 	}
 	return 0;
 }
@@ -1306,12 +1307,17 @@ int mmi_get_protocol(struct adapter_device *dev, int *val)
 	int wait_count = 0;
 	*val = wt6670f_get_protocol();
 
-	if(QC3P_Z350 == g_qc3p_id && (*val == 0x010 || *val == USB_TYPE_DCP)) {
+	if(QC3P_Z350 == g_qc3p_id && (*val == 0x010)) {
 		wt6670f_en_hvdcp();
 		wait_count = 0;
 		while(wait_count < 30) {
 			msleep(100);
 			wait_count++;
+			*val = wt6670f_get_protocol();
+			if(*val == 0x06 || *val == 0x09 || *val == 0x12) {
+				pr_info("wt6670f_get_protocol break *val=%d\n",*val);
+				break;
+			}
 		}
 
 		*val = wt6670f_get_protocol();
