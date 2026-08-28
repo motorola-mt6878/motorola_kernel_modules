@@ -43,13 +43,6 @@
 #define mmi_dbg	pr_debug
 #define mmi_err	pr_err
 
-#ifndef MAX
-#define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
-#endif
-#ifndef MIN
-#define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
-#endif
-
 #define queue_delayed_work_time  8000
 #define queue_start_work_time    1
 

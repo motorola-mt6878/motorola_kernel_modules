@@ -53,8 +53,6 @@ struct mmi_uart_data {
 
 #define MMI_UART_SEGMENT_TIMEOUT 500 /* msec */
 
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-
 /* Found in tty_io.c */
 extern struct mutex tty_mutex;
 

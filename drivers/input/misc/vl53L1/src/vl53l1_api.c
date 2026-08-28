@@ -157,13 +157,6 @@
 		##__VA_ARGS__)
 #endif
 
-#ifndef MIN
-#define MIN(v1, v2) ((v1) < (v2) ? (v1) : (v2))
-#endif
-#ifndef MAX
-#define MAX(v1, v2) ((v1) < (v2) ? (v2) : (v1))
-#endif
-
 #define DMAX_REFLECTANCE_IDX 2
 
 

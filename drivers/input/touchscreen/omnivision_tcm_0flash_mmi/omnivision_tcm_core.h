@@ -209,16 +209,6 @@ struct ovt_tcm_board_data {
 		} \
 	} while (0)
 
-#define MAX(a, b) \
-	({__typeof__(a) _a = (a); \
-	__typeof__(b) _b = (b); \
-	_a > _b ? _a : _b; })
-
-#define MIN(a, b) \
-	({__typeof__(a) _a = (a); \
-	__typeof__(b) _b = (b); \
-	_a < _b ? _a : _b; })
-
 #define STR(x) #x
 
 #define CONCAT(a, b) a##b

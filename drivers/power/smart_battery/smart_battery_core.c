@@ -27,13 +27,6 @@ MODULE_PARM_DESC(debug_enabled, "Enable debug for MMI DISCRETE CHARGER driver");
 static struct mmi_smart_battery *this_chip = NULL;
 static int smart_batt_soc100_forward(struct mmi_smart_battery *chip, int rsoc);
 
-#ifndef MAX
-#define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
-#endif
-#ifndef MIN
-#define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
-#endif
-
 static int smart_batt_set_temperature(struct mmi_smart_battery *chip, int intval)
 {
 	struct mmi_battery_pack *battery = NULL;
