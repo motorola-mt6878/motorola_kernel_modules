@@ -14,7 +14,11 @@
 #include <linux/module.h>
 #include <trace/hooks/mm.h>
 #include <linux/pagemap.h>
+#include <linux/sched/rt.h>
 #include <linux/version.h>
+#include <linux/gfp.h>
+#include <trace/hooks/iommu.h>
+#include <trace/hooks/vmscan.h>
 
 static int max_ra_pages = -1;
 module_param(max_ra_pages, int, S_IRUGO | S_IWUSR);
@@ -25,6 +29,15 @@ MODULE_PARM_DESC(max_ra_pages, "Max read ahead pages");
 #define TUNE_MMAP_READAROUND
 #endif
 #endif
+
+/*
+ * for __iommu_dma_alloc_pages, there is a loop to try to alloc pages from high-order to low-order fallback.
+ * and this hook only change the high-order( > costly order) alloc behavior(which high probability will result more overhead than benifit).
+ * which allow low order alloc to do reclaim behavior still, otherwise may end up with alloc fail.
+ *
+ * current value 9 is quite conservative - a more reasonable value might be around 5
+ */
+#define IOMMU_DMA_ALLOC_COSTLY_ORDER 9
 
 #if defined(TUNE_MMAP_READAROUND)
 static void __nocfi tune_mmap_readaround(void *p, unsigned int ra_pages, pgoff_t pgoff,
@@ -102,6 +115,31 @@ static void __nocfi filemap_fault_cache_page(void *p, struct vm_fault *vmf, stru
 }
 #endif
 
+static void adjust_alloc_flags(void *ignore,
+				unsigned int order,
+				gfp_t *alloc_flags)
+{
+	if (!alloc_flags) return;
+
+	if (order >= IOMMU_DMA_ALLOC_COSTLY_ORDER) {
+		pr_debug("adjust_alloc_flags, order=%d", order);
+		if (*alloc_flags & __GFP_NOFAIL)
+		    *alloc_flags &= ~__GFP_NOFAIL;
+
+		*alloc_flags |= __GFP_NORETRY;
+		*alloc_flags &= ~__GFP_RECLAIM;
+	}
+}
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
+static void throttle_direct_reclaim_bypass(void *ignore, bool *bypass)
+{
+	if (rt_task(current)) {
+		*bypass = true;
+	}
+}
+#endif
+
 static int __nocfi __init moto_mmap_fault_init(void)
 {
 	int ret = 0;
@@ -114,6 +152,10 @@ static int __nocfi __init moto_mmap_fault_init(void)
 		else
 			max_ra_pages = 16;
 	}
+	register_trace_android_vh_adjust_alloc_flags(adjust_alloc_flags, NULL);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
+	register_trace_android_vh_throttle_direct_reclaim_bypass(throttle_direct_reclaim_bypass, NULL);
+#endif
 
 #if defined(TUNE_MMAP_READAROUND)
 	pr_info("Using the new mmap fault driver, totalram size=%dGB", ramsize_GB);
@@ -130,6 +172,10 @@ static int __nocfi __init moto_mmap_fault_init(void)
 }
 static void __nocfi __exit moto_mmap_fault_exit(void)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
+	unregister_trace_android_vh_throttle_direct_reclaim_bypass(throttle_direct_reclaim_bypass, NULL);
+#endif
+	unregister_trace_android_vh_adjust_alloc_flags(adjust_alloc_flags, NULL);
 #if defined(TUNE_MMAP_READAROUND)
 	unregister_trace_android_vh_tune_mmap_readaround(tune_mmap_readaround, NULL);
 #else

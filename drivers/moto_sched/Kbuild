@@ -13,7 +13,11 @@ EXTRA_CFLAGS += -I$(ANDROID_BUILD_TOP)/motorola/kernel/modules/drivers/moto_sche
 
 ifneq ($(filter m y,$(CONFIG_MTK_SCHED_VIP_TASK)),)
 EXTRA_CFLAGS += -I$(ANDROID_BUILD_TOP)/kernel-6.1
+EXTRA_CFLAGS += -I$(ANDROID_BUILD_TOP)/kernel-6.6
+EXTRA_CFLAGS += -I$(ANDROID_BUILD_TOP)/kernel-6.12
 EXTRA_CFLAGS += -I$(ANDROID_BUILD_TOP)/kernel_device_modules-6.1
+EXTRA_CFLAGS += -I$(ANDROID_BUILD_TOP)/kernel_device_modules-6.6
+EXTRA_CFLAGS += -I$(ANDROID_BUILD_TOP)/kernel_device_modules-6.12
 CONFIG_MOTO_MUTEX_INHERIT := y
 CONFIG_MOTO_RWSEM_INHERIT := y
 endif
@@ -32,9 +36,23 @@ ifneq ($(filter m y,$(CONFIG_MOTO_FUTEX_INHERIT)),)
 	EXTRA_CFLAGS += -DCONFIG_MOTO_FUTEX_INHERIT
 endif
 
-moto_sched-y := msched_main.o msched_sysfs.o msched_common.o
+ifneq ($(filter m y,$(CONFIG_MOTO_LOCKING_2)),)
+	EXTRA_CFLAGS += -DCONFIG_MOTO_LOCKING_2
+endif
+
+ifneq ($(filter m y,$(CONFIG_MOTO_BOOST_RT_KWORKER_HIGHEST)),)
+	EXTRA_CFLAGS += -DCONFIG_MOTO_BOOST_RT_KWORKER_HIGHEST
+endif
+
+ifneq ($(filter m y,$(CONFIG_MOTO_ENABLE_MDPF)),)
+	EXTRA_CFLAGS += -DCONFIG_MOTO_ENABLE_MDPF
+endif
+
+moto_sched-y := msched_main.o msched_sysfs.o msched_common.o msched_oemdata.o locking/locking_trace.o msched_boost.o
 
 moto_sched-y += locking/locking_main.o
 moto_sched-$(CONFIG_MOTO_MUTEX_INHERIT) += locking/mutex.o
 moto_sched-$(CONFIG_MOTO_RWSEM_INHERIT) += locking/rwsem.o
 moto_sched-$(CONFIG_MOTO_FUTEX_INHERIT) += locking/futex.o
+moto_sched-$(CONFIG_MOTO_ENABLE_MDPF) += msched_uclamp.o
+moto_sched-$(CONFIG_MOTO_ENABLE_MDPF) += mdpf/mdpf_sysfs.o

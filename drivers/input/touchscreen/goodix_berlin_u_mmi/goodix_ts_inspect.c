@@ -110,7 +110,6 @@
 
 
 #define ABS(val)			((val < 0)? -(val) : val)
-
 static bool module_initialized;
 
 /* berlin A drv-sen map */
